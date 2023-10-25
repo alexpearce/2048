@@ -1,19 +1,22 @@
 defmodule Game do
   @default_options [
     # Number of cells per row and per column.
-    board_dimensions: {3, 2},
+    board_dimensions: {4, 4},
     # Value of the singular piece present at the beginning of the game.
     starting_number: 2,
     # Value of the piece randomly inserted into the board at the beginning of
     # each turn.
     turn_start_number: 1,
     # Value of the piece which, when present on the board, results in a win.
-    winning_number: 4
+    winning_number: 2048
   ]
   @cell_size 5
 
   def init(opts \\ []) do
     opts = Keyword.validate!(opts, @default_options)
+
+    # TODO validate that value options are all powers of two and that starting
+    # and turn start values are both less than winning value.
 
     game = %{
       board: starting_board(opts[:board_dimensions], opts[:starting_number]),
@@ -104,13 +107,11 @@ defmodule Game do
   end
 
   defp render_board(%{cells: cells, dimensions: {num_rows, num_cols}}) do
-    Enum.map(1..num_rows, fn row ->
-      Enum.map(1..num_cols, fn col ->
+    Enum.map_join(1..num_rows, "\n", fn row ->
+      Enum.map_join(1..num_cols, "", fn col ->
         render_cell(cells, {row, col})
       end)
-      |> Enum.join("")
     end)
-    |> Enum.join("\n")
   end
 
   defp render_cell(cells, coordinate) do
@@ -151,33 +152,48 @@ defmodule Game do
   end
 
   defp merge_values(%{cells: cells} = board, move) do
+    # For each row, we run a two-pointer algorithm where:
+    #
+    # * Pointer #1 iterates through the row.
+    # * Pointer #2 points to the latest non-empty, non-modified cell behind pointer #1.
+    #
+    # As #1 iterates, if its current cell is not empty and:
+    #
+    # * Has the same value as the cell of #2: the cell of #1 will be merged into that of #2 (the #2 cell
+    #   value will be doubled and the #1 cell will be emptied) and the #2 pointer will
+    #   be nullified. Or;
+    # * Does not have the same value as the cell of #2: the #2 pointer
+    #   is updated to point to #1 before #1 continues its iteration.
     updates =
       rows_for_move(board, move)
       |> Enum.map(fn row ->
         Enum.map(row, fn coord -> {coord, cells[coord]} end)
       end)
-      |> Enum.flat_map(fn row ->
-        new_row = Enum.into(row, %{})
-
-        {new_row, _} =
-          Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
-                                              {new_row, last_non_empty_coord} ->
-            if is_nil(current_value) do
-              {new_row, last_non_empty_coord}
-            else
-              if current_value == new_row[last_non_empty_coord] do
-                {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
-              else
-                {new_row, coord}
-              end
-            end
-          end)
-
-        Map.to_list(new_row)
-      end)
+      |> Enum.flat_map(&merge_row_values(&1))
       |> Enum.into(%{})
 
     update_board(board, updates)
+  end
+
+  defp merge_row_values(row) do
+    # row is a list of {{row, col}, value} elements.
+    new_row = Enum.into(row, %{})
+
+    {new_row, _} =
+      Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
+                                          {new_row, last_non_empty_coord} ->
+        if is_nil(current_value) do
+          {new_row, last_non_empty_coord}
+        else
+          if current_value == new_row[last_non_empty_coord] do
+            {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
+          else
+            {new_row, coord}
+          end
+        end
+      end)
+
+    Map.to_list(new_row)
   end
 
   defp move_values(%{cells: cells} = board, move) do
