@@ -49,7 +49,32 @@ h1 {
   color: var(--text-color);
 }
 
-.game {
+a {
+  position: relative;
+  text-decoration: none;
+}
+
+/* Animate a solid underline sliding in and out on hover. */
+a::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 0.075em;
+  bottom: 0.1em;
+  left: 0;
+  z-index: -1;
+  background-color: var(--text-color);
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out;
+}
+
+a:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.cozy {
   padding: 8px;
   background-color: #fbcfe8;
   border-radius: 8px;

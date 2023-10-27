@@ -6,7 +6,7 @@ defmodule TwentyFourtyEight.Game.Manager do
   @registry TwentyFourtyEight.Game.Registry
   @supervisor TwentyFourtyEight.Game.Supervisor
 
-  def get_game(name) when is_binary(name) do
+  def get_game(name, _state) when is_binary(name) do
     case Registry.lookup(@registry, name) do
       [{pid, _value}] -> {:ok, pid}
       [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, name})

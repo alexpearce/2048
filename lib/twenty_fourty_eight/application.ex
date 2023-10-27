@@ -10,7 +10,8 @@ defmodule TwentyFourtyEight.Application do
     children = [
       TwentyFourtyEightWeb.Telemetry,
       TwentyFourtyEight.Repo,
-      {DNSCluster, query: Application.get_env(:twenty_fourty_eight, :dns_cluster_query) || :ignore},
+      {DNSCluster,
+       query: Application.get_env(:twenty_fourty_eight, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TwentyFourtyEight.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: TwentyFourtyEight.Finch},

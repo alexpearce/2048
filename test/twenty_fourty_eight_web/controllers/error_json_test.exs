@@ -2,7 +2,9 @@ defmodule TwentyFourtyEightWeb.ErrorJSONTest do
   use TwentyFourtyEightWeb.ConnCase, async: true
 
   test "renders 404" do
-    assert TwentyFourtyEightWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+    assert TwentyFourtyEightWeb.ErrorJSON.render("404.json", %{}) == %{
+             errors: %{detail: "Not Found"}
+           }
   end
 
   test "renders 500" do
