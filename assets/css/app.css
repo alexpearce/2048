@@ -49,13 +49,17 @@ h1 {
   color: var(--text-color);
 }
 
-a {
+h1 a {
   position: relative;
   text-decoration: none;
 }
 
+h1 a:hover {
+  text-decoration: none;
+}
+
 /* Animate a solid underline sliding in and out on hover. */
-a::after {
+h1 a::after {
   content: '';
   position: absolute;
   width: 100%;
@@ -69,9 +73,17 @@ a::after {
   transition: transform 0.25s ease-out;
 }
 
-a:hover::after {
+h1 a:hover::after {
   transform: scaleX(1);
   transform-origin: bottom left;
+}
+
+a {
+  color: var(--text-color);
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 .cozy {

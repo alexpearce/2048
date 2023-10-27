@@ -6,10 +6,10 @@ defmodule TwentyFourtyEight.Game.Manager do
   @registry TwentyFourtyEight.Game.Registry
   @supervisor TwentyFourtyEight.Game.Supervisor
 
-  def get_game(name, _state) when is_binary(name) do
+  def get_game(name, state) when is_binary(name) do
     case Registry.lookup(@registry, name) do
       [{pid, _value}] -> {:ok, pid}
-      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, name})
+      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, {name, state}})
     end
   end
 
@@ -21,15 +21,14 @@ defmodule TwentyFourtyEight.Game.Manager do
     GenServer.call(via_tuple(name), :state)
   end
 
-  def start_link(name) do
-    GenServer.start_link(__MODULE__, [name: name], name: via_tuple(name))
+  def start_link({name, state}) do
+    GenServer.start_link(__MODULE__, state, name: via_tuple(name))
   end
 
   @impl true
-  def init(name: name) do
-    IO.puts("Starting manager #{name}")
+  def init(state) do
     Process.flag(:trap_exit, true)
-    {:ok, Engine.init()}
+    {:ok, Engine.init(state)}
   end
 
   @impl true

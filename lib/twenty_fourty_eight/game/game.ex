@@ -16,6 +16,10 @@ defmodule TwentyFourtyEight.Game.Game do
     field :turn_start_number, :integer, default: 1
     field :winning_number, :integer, default: 2048
     field :slug, :string
+    field :score, :integer
+    field :turns, :integer
+    field :state, Ecto.Enum, values: [:new, :running, :won, :exhausted]
+    field :board, :map
     timestamps()
   end
 

@@ -1,5 +1,6 @@
 defmodule TwentyFourtyEight.Game.Engine do
-  @default_options [
+  # TODO obstacles
+  @default_new_options [
     # Number of cells per row and per column.
     board_dimensions: {6, 6},
     # Value of the singular piece present at the beginning of the game.
@@ -10,26 +11,34 @@ defmodule TwentyFourtyEight.Game.Engine do
     # Value of the piece which, when present on the board, results in a win.
     winning_number: 2048
   ]
+  @all_options Keyword.keys(@default_new_options) ++ [:board, :score, :turns, :state]
   @valid_moves [:up, :down, :left, :right]
 
-  def init(opts \\ []) do
-    opts = Keyword.validate!(opts, @default_options)
-
-    # TODO validate that value options are all powers of two and that starting
-    # and turn start values are both less than winning value.
-
-    %{
-      board: starting_board(opts[:board_dimensions], opts[:starting_number]),
+  def init(%{state: :new} = opts) do
+    opts
+    # |> Keyword.validate!(@default_new_options)
+    |> Map.merge(%{
+      board: starting_board({opts.num_rows, opts.num_cols}, opts.starting_number),
       score: 0,
       turns: 0,
-      state: :running,
-      turn_start_number: opts[:turn_start_number],
-      winning_number: opts[:winning_number]
+      state: :running
+    })
+    |> init()
+  end
+
+  def init(opts) do
+    %{
+      board: opts.board,
+      score: opts.score,
+      turns: opts.turns,
+      state: opts.state,
+      turn_start_number: opts.turn_start_number,
+      winning_number: opts.winning_number
     }
   end
 
   def tick(%{state: :running} = game, move) when move in @valid_moves do
-    update(game, move)
+    apply_move(game, move)
   end
 
   defp starting_board({num_rows, num_cols}, starting_number) do
@@ -57,17 +66,37 @@ defmodule TwentyFourtyEight.Game.Engine do
     |> Enum.any?(fn value -> value == winning_number end)
   end
 
-  defp update(
-         %{board: board, turns: turns, turn_start_number: turn_start_number, state: :running} =
-           game,
-         move
-       ) do
-    # TODO Increase score (by the sum of newly merged pieces).
-    board = merge_values(board, move)
-    board = move_values(board, move)
-    # TODO only increment turns and check for wins/exhaustion if the move
-    # actually modified the board.
-    game = %{game | board: board, turns: turns + 1}
+  defp apply_move(%{board: board} = game, move) do
+    updated_board = board |> merge_values(move) |> move_values(move)
+
+    # Only need to update state if the board changed.
+    if Map.equal?(board, updated_board) do
+      game
+    else
+      turn_score = compute_score(board, updated_board)
+      apply_turn(game, updated_board, turn_score)
+    end
+  end
+
+  defp compute_score(%{cells: cells_before} = _board_before, %{cells: cells_after} = _board_after) do
+    value_counts_before = cells_before |> Map.values() |> Enum.frequencies()
+    value_counts_after = cells_after |> Map.values() |> Enum.frequencies()
+
+    # Any values not present after a move must be due to merges.
+    # Credit merges as the sum of all disappearing values.
+    value_counts_before
+    |> Enum.map(fn
+      {nil, _count} -> 0
+
+      {value, count} ->
+        difference = count - Map.get(value_counts_after, value, 0)
+        if difference > 0, do: value * difference, else: 0
+    end)
+    |> Enum.sum()
+  end
+
+  defp apply_turn(%{score: score, turns: turns, turn_start_number: turn_start_number} = game, board, turn_score) do
+    game = %{game | board: board, turns: turns + 1, score: score + turn_score}
 
     if won?(game) do
       %{game | state: :won}

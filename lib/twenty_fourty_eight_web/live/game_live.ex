@@ -4,18 +4,18 @@ defmodule TwentyFourtyEightWeb.GameLive do
   alias TwentyFourtyEight.Game.Game
   alias TwentyFourtyEight.Game.Manager, as: GameManager
 
-  # Support arrows keys as well as hjkl (Vim) and wasd (gaming).
-  @up_keys ["ArrowUp", "w", "k"]
-  @down_keys ["ArrowDown", "s", "j"]
-  @left_keys ["ArrowLeft", "a", "h"]
-  @right_keys ["ArrowRight", "d", "l"]
+  # Support arrows keys, hjkl, and wasd for movement.
+  @up_keys ~w(ArrowUp w k)
+  @down_keys ~w(ArrowDown s j)
+  @left_keys ~w(ArrowLeft a h)
+  @right_keys ~w(ArrowRight d l)
   @known_keys @up_keys ++ @down_keys ++ @left_keys ++ @right_keys
 
   def render(assigns) do
     ~H"""
     <div class="cozy">
       <div class="stats">
-        <div><b>Name</b> <code><%= @name %></code></div>
+        <div><b>Name</b> <a href={~p"/#{@name}"}><code><%= @name %></code></a></div>
         <div><b>Score</b> <%= @score %></div>
         <div><b>Turns</b> <%= @turns %></div>
       </div>
@@ -37,6 +37,10 @@ defmodule TwentyFourtyEightWeb.GameLive do
         # TODO change game to die after no interaction (or put similar logic in the manager?)
         {:ok, _pid} = GameManager.get_game(name, game)
 
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(TwentyFourtyEight.PubSub, name)
+        end
+
         {:ok, assign_game(socket, name)}
     end
   end
@@ -47,10 +51,15 @@ defmodule TwentyFourtyEightWeb.GameLive do
   def handle_event("move", %{"key" => key}, %{assigns: %{name: name, state: :running}} = socket)
       when key in @known_keys do
     :ok = GameManager.tick(name, key_to_move(key))
-    {:noreply, assign_game_state(socket, name)}
+    Phoenix.PubSub.broadcast(TwentyFourtyEight.PubSub, name, {:update, name})
+    {:noreply, socket}
   end
 
   def handle_event("move", _params, socket), do: {:noreply, socket}
+
+  def handle_info({:update, name}, socket) do
+    {:noreply, assign_game_state(socket, name)}
+  end
 
   defp key_to_move(up) when up in @up_keys, do: :up
   defp key_to_move(down) when down in @down_keys, do: :down
