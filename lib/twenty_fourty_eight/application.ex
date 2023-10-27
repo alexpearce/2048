@@ -14,8 +14,8 @@ defmodule TwentyFourtyEight.Application do
       {Phoenix.PubSub, name: TwentyFourtyEight.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: TwentyFourtyEight.Finch},
-      # Start a worker by calling: TwentyFourtyEight.Worker.start_link(arg)
-      # {TwentyFourtyEight.Worker, arg},
+      {Registry, keys: :unique, name: TwentyFourtyEight.Game.Registry},
+      {DynamicSupervisor, name: TwentyFourtyEight.Game.Supervisor, strategy: :one_for_one},
       # Start to serve requests, typically the last entry
       TwentyFourtyEightWeb.Endpoint
     ]

@@ -17,7 +17,8 @@ defmodule TwentyFourtyEightWeb.Router do
   scope "/", TwentyFourtyEightWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", GameLive
+    live "/:name", GameLive
   end
 
   # Other scopes may use custom stacks.
