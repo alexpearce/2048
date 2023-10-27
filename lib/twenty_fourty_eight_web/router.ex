@@ -17,7 +17,8 @@ defmodule TwentyFourtyEightWeb.Router do
   scope "/", TwentyFourtyEightWeb do
     pipe_through :browser
 
-    live "/", GameLive
+    get "/", GameController, :new
+    post "/", GameController, :create
     live "/:name", GameLive
   end
 

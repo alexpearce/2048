@@ -3,38 +3,32 @@ defmodule TwentyFourtyEightWeb.GameLive do
 
   alias TwentyFourtyEight.Game.Manager, as: GameManager
 
+  # Support arrows keys as well as hjkl (Vim) and wasd (gaming).
+  @up_keys ["ArrowUp", "w", "k"]
+  @down_keys ["ArrowDown", "s", "j"]
+  @left_keys ["ArrowLeft", "a", "h"]
+  @right_keys ["ArrowRight", "d", "l"]
+  @known_keys @up_keys ++ @down_keys ++ @left_keys ++ @right_keys
+
   def render(assigns) do
     ~H"""
-    <div class="container bg-slate-100">
-      Name: <%= @name %>
-      Turn number: <%= @turns %>
-      Score: <%= @score %>
-      <!--
-      Possible grid sizes:
-      grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6
-      grid-rows-1 grid-rows-2 grid-rows-3 grid-rows-4 grid-rows-5 grid-rows-6
-      -->
-      <div class={"grid grid-cols-#{@num_cols} gap-4 h-96 text-3xl p-6"} phx-window-keyup="move">
-        <%= for row <- 1..@num_rows do %>
-          <%= for col <- 1..@num_cols do %>
-            <%= if is_nil(@board[{row, col}]) do %>
-              <div class="flex justify-center items-center bg-slate-200 border-2 border-slate-300 rounded-lg">&nbsp;</div>
-            <% else %>
-              <div class="flex justify-center items-center bg-slate-300 border-2 border-slate-400 rounded-lg"><%= @board[{row, col}] %></div>
-            <% end %>
-          <% end %>
-        <% end %>
+    <div class="game">
+      <div class="stats">
+        <div><b>Name</b> <code><%= @name %></code></div>
+        <div><b>Score</b> <%= @score %></div>
+        <div><b>Turns</b> <%= @turns %></div>
       </div>
+      <div class="message"><%= status_message(@state) %></div>
+      <.board num_rows={@num_rows} num_cols={@num_cols} cell_values={@board} />
     </div>
     """
   end
 
   def mount(%{"name" => name} = _params, _session, socket) do
-    # TODO this is called twice, once at GET and once at WS connection.
-    # no need to create two games! just need to make sure assigns are
-    # filled in with placeholders
-    {:ok, pid} = GameManager.new_game(name)
-    Process.link(pid)
+    {:ok, pid} = GameManager.get_game(name)
+    # This will kill the game when the LV dies, e.g. after the initial GET
+    # request (before the socket has connected).
+    # Process.link(pid)
 
     socket = socket
     |> assign_game(name)
@@ -46,19 +40,20 @@ defmodule TwentyFourtyEightWeb.GameLive do
     {:ok, push_navigate(socket, to: "/#{name}")}
   end
 
-  def handle_event("move", %{"key" => key}, %{assigns: %{name: name}} = socket) when key in ~w(h j k l) do
+  @doc """
+  Handle known key events whilst the game is running.
+  """
+  def handle_event("move", %{"key" => key}, %{assigns: %{name: name, state: :running}} = socket) when key in @known_keys do
     :ok = GameManager.tick(name, key_to_move(key))
     {:noreply, assign_game_state(socket, name)}
   end
 
-  def handle_event("move", params, socket) do
-    {:noreply, socket}
-  end
+  def handle_event("move", params, socket), do: {:noreply, socket}
 
-  defp key_to_move("h"), do: :left
-  defp key_to_move("j"), do: :down
-  defp key_to_move("k"), do: :up
-  defp key_to_move("l"), do: :right
+  defp key_to_move(up) when up in @up_keys, do: :up
+  defp key_to_move(down) when down in @down_keys, do: :down
+  defp key_to_move(left) when left in @left_keys, do: :left
+  defp key_to_move(right) when right in @right_keys, do: :right
 
   defp generate_name do
     ?a..?z
@@ -78,5 +73,31 @@ defmodule TwentyFourtyEightWeb.GameLive do
     socket
     |> assign(num_rows: num_rows, num_cols: num_cols, board: board)
     |> assign(game_state)
+  end
+
+  defp status_message(:running), do: ""
+  defp status_message(:won), do: "You won!"
+  defp status_message(:exhausted), do: "Game over!"
+
+  defp board(assigns) do
+    ~H"""
+    <div class="board" style={"grid-template-columns: repeat(#{@num_cols}, 1fr);"} phx-window-keyup="move">
+      <%= for row <- 1..@num_rows do %>
+        <%= for col <- 1..@num_cols do %>
+          <.cell value={@cell_values[{row, col}]} />
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp cell(assigns) do
+    ~H"""
+    <%= if is_nil(@value) do %>
+      <div class="cell" style="--cell-value: 0;">&nbsp;</div>
+    <% else %>
+      <div class="cell" style={"--cell-value: #{@value};"}><%= @value %></div>
+    <% end %>
+    """
   end
 end
