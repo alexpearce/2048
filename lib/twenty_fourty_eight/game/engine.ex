@@ -1,5 +1,9 @@
 defmodule TwentyFourtyEight.Game.Engine do
-  # TODO obstacles
+  # TODO
+  # 1. rename Fourty -> Forty
+  # 2. mark a game as lost if, at the start of a turn, the board is exhausted and no move would change that
+  # 3. factor out board creation into a separate module. the engine's state can then be reduced (doesn't need stuff only required to create the board.)
+  # 4. fix obstacle creation and make it configurable.
   @default_new_options [
     # Number of cells per row and per column.
     board_dimensions: {6, 6},
@@ -11,6 +15,8 @@ defmodule TwentyFourtyEight.Game.Engine do
     # Value of the piece which, when present on the board, results in a win.
     winning_number: 2048
   ]
+  @obstacles 2
+  @obstacle :obstacle
   @all_options Keyword.keys(@default_new_options) ++ [:board, :score, :turns, :state]
   @valid_moves [:up, :down, :left, :right]
 
@@ -18,7 +24,7 @@ defmodule TwentyFourtyEight.Game.Engine do
     opts
     # |> Keyword.validate!(@default_new_options)
     |> Map.merge(%{
-      board: starting_board({opts.num_rows, opts.num_cols}, opts.starting_number),
+      board: starting_board({opts.num_rows, opts.num_cols}, opts.starting_number, @obstacles),
       score: 0,
       turns: 0,
       state: :running
@@ -41,13 +47,15 @@ defmodule TwentyFourtyEight.Game.Engine do
     apply_move(game, move)
   end
 
-  defp starting_board({num_rows, num_cols}, starting_number) do
+  defp starting_board({num_rows, num_cols}, starting_number, num_obstacles) do
     empty_cells =
       for row <- 1..num_rows, col <- 1..num_cols, into: %{}, do: {{row, col}, nil}
 
     board = %{cells: empty_cells, dimensions: {num_rows, num_cols}}
 
-    add_value(board, starting_number)
+    board = add_value(board, starting_number)
+    # TODO this will generate two obstacles when num_obstacles == 0
+    Enum.reduce(1..num_obstacles, board, fn _, acc -> add_value(acc, @obstacle) end)
   end
 
   defp exhausted?(%{board: %{cells: cells}} = _game) do
@@ -86,7 +94,8 @@ defmodule TwentyFourtyEight.Game.Engine do
     # Credit merges as the sum of all disappearing values.
     value_counts_before
     |> Enum.map(fn
-      {nil, _count} -> 0
+      {nil, _count} ->
+        0
 
       {value, count} ->
         difference = count - Map.get(value_counts_after, value, 0)
@@ -95,7 +104,11 @@ defmodule TwentyFourtyEight.Game.Engine do
     |> Enum.sum()
   end
 
-  defp apply_turn(%{score: score, turns: turns, turn_start_number: turn_start_number} = game, board, turn_score) do
+  defp apply_turn(
+         %{score: score, turns: turns, turn_start_number: turn_start_number} = game,
+         board,
+         turn_score
+       ) do
     game = %{game | board: board, turns: turns + 1, score: score + turn_score}
 
     if won?(game) do
@@ -140,14 +153,19 @@ defmodule TwentyFourtyEight.Game.Engine do
     {new_row, _} =
       Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
                                           {new_row, last_non_empty_coord} ->
-        if is_nil(current_value) do
-          {new_row, last_non_empty_coord}
-        else
-          if current_value == new_row[last_non_empty_coord] do
-            {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
-          else
-            {new_row, coord}
-          end
+        case current_value do
+          nil ->
+            {new_row, last_non_empty_coord}
+
+          @obstacle ->
+            {new_row, nil}
+
+          _ ->
+            if current_value == new_row[last_non_empty_coord] do
+              {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
+            else
+              {new_row, coord}
+            end
         end
       end)
 
@@ -165,13 +183,18 @@ defmodule TwentyFourtyEight.Game.Engine do
         values =
           row
           |> Enum.map(&Map.fetch!(cells, &1))
-          |> Enum.filter(& &1)
+          |> Enum.chunk_by(&(&1 == @obstacle))
+          |> Enum.flat_map(fn chunked_row ->
+            values = chunked_row |> Enum.filter(& &1)
 
-        # Empty cells needed to pad out the new row.
-        padding = List.duplicate(nil, Enum.count(row) - Enum.count(values))
+            # Empty cells needed to pad out the new row.
+            padding = List.duplicate(nil, Enum.count(chunked_row) - Enum.count(values))
+
+            values ++ padding
+          end)
 
         # Zip the original coordinates with the new values.
-        Enum.zip(row, values ++ padding)
+        Enum.zip(row, values)
       end)
       |> Enum.into(%{})
 

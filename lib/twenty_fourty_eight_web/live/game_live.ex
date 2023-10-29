@@ -103,10 +103,13 @@ defmodule TwentyFourtyEightWeb.GameLive do
 
   defp cell(assigns) do
     ~H"""
-    <%= if is_nil(@value) do %>
-      <div class="cell" style="--cell-value: 0;">&nbsp;</div>
-    <% else %>
-      <div class="cell" style={"--cell-value: #{@value};"}><%= @value %></div>
+    <%= case @value do %>
+      <% nil -> %>
+        <div class="cell" style="--cell-value: 0;">&nbsp;</div>
+      <% :obstacle -> %>
+        <div class="cell" style="--cell-value: 0;">X</div>
+      <% _ -> %>
+        <div class="cell" style={"--cell-value: #{@value};"}><%= @value %></div>
     <% end %>
     """
   end
