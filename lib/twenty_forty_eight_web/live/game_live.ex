@@ -20,7 +20,7 @@ defmodule TwentyFortyEightWeb.GameLive do
         <div><b>Turns</b> <%= @turns %></div>
       </div>
       <div class="message"><%= status_message(@state) %></div>
-      <.board num_rows={@num_rows} num_cols={@num_cols} cell_values={@board} />
+      <.board num_rows={@num_rows} num_cols={@num_cols} cells={@cells} />
     </div>
     """
   end
@@ -74,16 +74,15 @@ defmodule TwentyFortyEightWeb.GameLive do
 
   defp assign_game_state(socket, name) do
     game_state = GameManager.state(name)
-    {%{cells: board, dimensions: {num_rows, num_cols}}, game_state} = Map.pop(game_state, :board)
 
     socket
-    |> assign(num_rows: num_rows, num_cols: num_cols, board: board)
+    |> assign(Map.from_struct(game_state.board))
     |> assign(game_state)
   end
 
   defp status_message(:running), do: ""
   defp status_message(:won), do: "You won!"
-  defp status_message(:exhausted), do: "Game over!"
+  defp status_message(:lost), do: "Game over!"
 
   defp board(assigns) do
     ~H"""
@@ -92,7 +91,7 @@ defmodule TwentyFortyEightWeb.GameLive do
       style={"grid-template-columns: repeat(#{@num_cols}, 1fr);"}
       phx-window-keyup="move"
     >
-      <.cell :for={cell <- cell_indicies(@num_rows, @num_cols)} value={@cell_values[cell]} />
+      <.cell :for={cell <- cell_indicies(@num_rows, @num_cols)} value={@cells[cell]} />
     </div>
     """
   end
@@ -105,9 +104,9 @@ defmodule TwentyFortyEightWeb.GameLive do
     ~H"""
     <%= case @value do %>
       <% nil -> %>
-        <div class="cell" style="--cell-value: 0;">&nbsp;</div>
+        <div class="cell" style="--cell-value: 0;"></div>
       <% :obstacle -> %>
-        <div class="cell" style="--cell-value: 0;">X</div>
+        <div class="cell cell-obstacle" style="--cell-value: 0;"></div>
       <% _ -> %>
         <div class="cell" style={"--cell-value: #{@value};"}><%= @value %></div>
     <% end %>

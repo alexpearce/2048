@@ -1,88 +1,53 @@
 defmodule TwentyFortyEight.Game.Engine do
-  # TODO
-  # 1. rename Forty -> Forty
-  # 2. mark a game as lost if, at the start of a turn, the board is exhausted and no move would change that
-  # 3. factor out board creation into a separate module. the engine's state can then be reduced (doesn't need stuff only required to create the board.)
-  # 4. fix obstacle creation and make it configurable.
-  @default_new_options [
-    # Number of cells per row and per column.
-    board_dimensions: {6, 6},
-    # Value of the singular piece present at the beginning of the game.
-    starting_number: 2,
-    # Value of the piece randomly inserted into the board at the beginning of
-    # each turn.
-    turn_start_number: 1,
-    # Value of the piece which, when present on the board, results in a win.
-    winning_number: 2048
-  ]
-  @obstacles 2
-  @obstacle :obstacle
-  @all_options Keyword.keys(@default_new_options) ++ [:board, :score, :turns, :state]
-  @valid_moves [:up, :down, :left, :right]
+  alias TwentyFortyEight.Game.Board
 
-  def init(%{state: :new} = opts) do
-    opts
-    # |> Keyword.validate!(@default_new_options)
-    |> Map.merge(%{
-      board: starting_board({opts.num_rows, opts.num_cols}, opts.starting_number, @obstacles),
+  @doc """
+  Return engine state for a new game.
+
+  The board is assumed to be in a state where a valid move can be made.
+  """
+  def init(%Board{} = board, opts) do
+    state = %{
+      board: board,
       score: 0,
       turns: 0,
-      state: :running
-    })
-    |> init()
+      state: :running,
+      turn_start_number: opts[:turn_start_number],
+      winning_number: opts[:winning_number]
+    }
+
+    restore(state)
   end
 
-  def init(opts) do
+  @doc """
+  Return engine state loaded from a previous engine.
+  """
+  def restore(state) do
     %{
-      board: opts.board,
-      score: opts.score,
-      turns: opts.turns,
-      state: opts.state,
-      turn_start_number: opts.turn_start_number,
-      winning_number: opts.winning_number
+      board: state.board,
+      score: state.score,
+      turns: state.turns,
+      state: state.state,
+      turn_start_number: state.turn_start_number,
+      winning_number: state.winning_number
     }
   end
 
-  def tick(%{state: :running} = game, move) when move in @valid_moves do
+  @doc """
+  Increment the game by one move.
+  """
+  def tick(%{state: :running} = game, move) do
     apply_move(game, move)
   end
 
-  defp starting_board({num_rows, num_cols}, starting_number, num_obstacles) do
-    empty_cells =
-      for row <- 1..num_rows, col <- 1..num_cols, into: %{}, do: {{row, col}, nil}
-
-    board = %{cells: empty_cells, dimensions: {num_rows, num_cols}}
-
-    board = add_value(board, starting_number)
-    # TODO this will generate two obstacles when num_obstacles == 0
-    Enum.reduce(1..num_obstacles, board, fn _, acc -> add_value(acc, @obstacle) end)
-  end
-
-  defp exhausted?(%{board: %{cells: cells}} = _game) do
-    # A game board is exhausted if, at the beginning of a turn, there is no
-    # empty cells left on the board.
-    cells
-    |> Map.values()
-    |> Enum.all?()
-  end
-
-  defp won?(%{board: %{cells: cells}, winning_number: winning_number} = _game) do
-    # A game is won if, at the end of a turn, a cell contains the winning
-    # number.
-    cells
-    |> Map.values()
-    |> Enum.any?(fn value -> value == winning_number end)
-  end
-
   defp apply_move(%{board: board} = game, move) do
-    updated_board = board |> merge_values(move) |> move_values(move)
+    updated_board = Board.apply_move(board, move)
 
-    # Only need to update state if the board changed.
-    if Map.equal?(board, updated_board) do
+    if Board.equal?(board, updated_board) do
       game
     else
       turn_score = compute_score(board, updated_board)
-      apply_turn(game, updated_board, turn_score)
+      update_game(game, updated_board, turn_score)
     end
   end
 
@@ -94,150 +59,61 @@ defmodule TwentyFortyEight.Game.Engine do
     # Credit merges as the sum of all disappearing values.
     value_counts_before
     |> Enum.map(fn
-      {nil, _count} ->
-        0
-
-      {value, count} ->
+      {value, count} when is_integer(value) ->
         difference = count - Map.get(value_counts_after, value, 0)
         if difference > 0, do: value * difference, else: 0
+
+      {_value, _count} ->
+        0
     end)
     |> Enum.sum()
   end
 
-  defp apply_turn(
-         %{score: score, turns: turns, turn_start_number: turn_start_number} = game,
-         board,
-         turn_score
-       ) do
-    game = %{game | board: board, turns: turns + 1, score: score + turn_score}
+  defp update_game(game, updated_board, turn_score) do
+    game
+    |> Map.put(:board, updated_board)
+    |> Map.update!(:turns, &(&1 + 1))
+    |> Map.update!(:score, &(&1 + turn_score))
+    |> maybe_put_won_state()
+    |> maybe_put_next_turn_value()
+    |> maybe_put_exhaustion_state()
+  end
 
-    if won?(game) do
-      %{game | state: :won}
+  defp maybe_put_won_state(game) do
+    %{game | state: maybe_won(game)}
+  end
+
+  defp maybe_put_next_turn_value(game) do
+    %{game | board: maybe_add_value(game, game.turn_start_number)}
+  end
+
+  defp maybe_put_exhaustion_state(game) do
+    %{game | state: maybe_lost(game)}
+  end
+
+  defp maybe_won(game) do
+    if won?(game.board, game.winning_number) do
+      :won
     else
-      if exhausted?(game) do
-        %{game | state: :exhausted}
-      else
-        %{game | board: add_value(board, turn_start_number)}
-      end
+      game.state
     end
   end
 
-  defp merge_values(%{cells: cells} = board, move) do
-    # For each row, we run a two-pointer algorithm where:
-    #
-    # * Pointer #1 iterates through the row.
-    # * Pointer #2 points to the latest non-empty, non-modified cell behind pointer #1.
-    #
-    # As #1 iterates, if its current cell is not empty and:
-    #
-    # * Has the same value as the cell of #2: the cell of #1 will be merged into that of #2 (the #2 cell
-    #   value will be doubled and the #1 cell will be emptied) and the #2 pointer will
-    #   be nullified. Or;
-    # * Does not have the same value as the cell of #2: the #2 pointer
-    #   is updated to point to #1 before #1 continues its iteration.
-    updates =
-      rows_for_move(board, move)
-      |> Enum.map(fn row ->
-        Enum.map(row, fn coord -> {coord, cells[coord]} end)
-      end)
-      |> Enum.flat_map(&merge_row_values(&1))
-      |> Enum.into(%{})
-
-    update_board(board, updates)
+  defp maybe_add_value(%{state: :running} = game, value) do
+    Board.add_value(game.board, value)
   end
 
-  defp merge_row_values(row) do
-    # row is a list of {{row, col}, value} elements.
-    new_row = Enum.into(row, %{})
+  defp maybe_add_value(game, _value), do: game.board
 
-    {new_row, _} =
-      Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
-                                          {new_row, last_non_empty_coord} ->
-        case current_value do
-          nil ->
-            {new_row, last_non_empty_coord}
-
-          @obstacle ->
-            {new_row, nil}
-
-          _ ->
-            if current_value == new_row[last_non_empty_coord] do
-              {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
-            else
-              {new_row, coord}
-            end
-        end
-      end)
-
-    Map.to_list(new_row)
+  defp won?(board, winning_number) do
+    Board.has_value?(board, winning_number)
   end
 
-  defp move_values(%{cells: cells} = board, move) do
-    # Conceptually, for each 'row' of values being moved:
-    # 1. Create a new row with all non-empty cells.
-    # 2. Pad the row up to the board size with empty cells.
-    updates =
-      rows_for_move(board, move)
-      |> Enum.flat_map(fn row ->
-        # Non-empty cells in the same order they appear in the row.
-        values =
-          row
-          |> Enum.map(&Map.fetch!(cells, &1))
-          |> Enum.chunk_by(&(&1 == @obstacle))
-          |> Enum.flat_map(fn chunked_row ->
-            values = chunked_row |> Enum.filter(& &1)
-
-            # Empty cells needed to pad out the new row.
-            padding = List.duplicate(nil, Enum.count(chunked_row) - Enum.count(values))
-
-            values ++ padding
-          end)
-
-        # Zip the original coordinates with the new values.
-        Enum.zip(row, values)
-      end)
-      |> Enum.into(%{})
-
-    update_board(board, updates)
-  end
-
-  defp update_board(%{cells: cells} = board, updates) do
-    %{board | cells: Map.merge(cells, updates)}
-  end
-
-  defp rows_for_move(%{dimensions: {num_rows, num_cols}} = _board, :left) do
-    for row <- 1..num_rows do
-      for col <- 1..num_cols, do: {row, col}
+  defp maybe_lost(game) do
+    if Board.unsolvable?(game.board) do
+      :lost
+    else
+      game.state
     end
-  end
-
-  defp rows_for_move(board, :right) do
-    board
-    |> rows_for_move(:left)
-    |> Enum.map(&Enum.reverse/1)
-  end
-
-  defp rows_for_move(board, :up) do
-    board
-    |> rows_for_move(:left)
-    |> Enum.zip()
-    |> Enum.map(&Tuple.to_list/1)
-  end
-
-  defp rows_for_move(board, :down) do
-    board
-    |> rows_for_move(:up)
-    |> Enum.map(&Enum.reverse/1)
-  end
-
-  defp add_value(%{cells: cells} = board, value) do
-    # Add the value to a randomly chosen empty coordinate.
-    random_coord =
-      cells
-      |> Map.keys()
-      |> Enum.filter(fn coord -> is_nil(cells[coord]) end)
-      |> Enum.random()
-
-    %{board | cells: Map.put(cells, random_coord, value)}
   end
 end

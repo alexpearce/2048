@@ -8,6 +8,7 @@ defmodule TwentyFortyEightWeb.GameHTML do
         <.input field={f[:num_rows]} type="select" options={1..6} label="Number of rows" />
         <.input field={f[:num_cols]} type="select" options={1..6} label="Number of columns" />
         <.input field={f[:starting_number]} type="select" options={[1, 2, 4]} label="First number" />
+        <.input field={f[:num_obstacles]} type="select" options={0..6} label="Number of obstacles" />
         <.input
           field={f[:turn_start_number]}
           type="select"

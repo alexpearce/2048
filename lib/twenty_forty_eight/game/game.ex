@@ -13,21 +13,30 @@ defmodule TwentyFortyEight.Game.Game do
     field :num_rows, :integer, default: 6
     field :num_cols, :integer, default: 6
     field :starting_number, :integer, default: 2
+    field :num_obstacles, :integer, default: 0
     field :turn_start_number, :integer, default: 1
     field :winning_number, :integer, default: 2048
     field :slug, :string
     field :score, :integer
     field :turns, :integer
-    field :state, Ecto.Enum, values: [:new, :running, :won, :exhausted]
+    field :state, Ecto.Enum, values: [:new, :running, :won, :lost]
     field :board, :map
     timestamps()
   end
 
   def changeset(attrs) do
     %__MODULE__{}
-    |> cast(attrs, [:num_rows, :num_cols, :starting_number, :turn_start_number, :winning_number])
+    |> cast(attrs, [
+      :num_rows,
+      :num_cols,
+      :starting_number,
+      :num_obstacles,
+      :turn_start_number,
+      :winning_number
+    ])
     |> validate_inclusion(:num_rows, 1..6)
     |> validate_inclusion(:num_cols, 1..6)
+    |> validate_inclusion(:num_obstacles, 1..6)
     |> validate_inclusion(:starting_number, [1, 2, 4])
     |> validate_inclusion(:turn_start_number, [1, 2, 4])
     |> validate_inclusion(:winning_number, [1024, 2048])

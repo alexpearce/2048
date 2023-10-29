@@ -8,8 +8,8 @@ defmodule TwentyFortyEightWeb.GameController do
     render(conn, :new, changeset: changeset)
   end
 
-  def create(conn, params) do
-    changeset = Game.changeset(params["game"])
+  def create(conn, %{"game" => attrs} = _params) do
+    changeset = Game.changeset(attrs)
 
     case Game.insert(changeset) do
       {:ok, game} -> redirect(conn, to: ~p"/#{game.slug}")

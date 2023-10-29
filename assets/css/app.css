@@ -132,3 +132,11 @@ a:hover {
   height: 0;
   padding-bottom: 100%;
 }
+
+.cell.cell-obstacle {
+  background: rgba(0, 0, 0, 0);
+}
+
+.cell.cell-obstacle:after {
+  content: "\274c";
+}

@@ -1,15 +1,15 @@
 defmodule TwentyFortyEight.Game.Manager do
   use GenServer, restart: :transient
 
-  alias TwentyFortyEight.Game.Engine
+  alias TwentyFortyEight.Game.{Board, Engine, Game}
 
   @registry TwentyFortyEight.Game.Registry
   @supervisor TwentyFortyEight.Game.Supervisor
 
-  def get_game(name, state) when is_binary(name) do
+  def get_game(name, %Game{} = game) when is_binary(name) do
     case Registry.lookup(@registry, name) do
       [{pid, _value}] -> {:ok, pid}
-      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, {name, state}})
+      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, {name, game}})
     end
   end
 
@@ -21,14 +21,14 @@ defmodule TwentyFortyEight.Game.Manager do
     GenServer.call(via_tuple(name), :state)
   end
 
-  def start_link({name, state}) do
-    GenServer.start_link(__MODULE__, state, name: via_tuple(name))
+  def start_link({name, game}) do
+    GenServer.start_link(__MODULE__, game, name: via_tuple(name))
   end
 
   @impl true
-  def init(state) do
+  def init(%Game{} = game) do
     Process.flag(:trap_exit, true)
-    {:ok, Engine.init(state)}
+    {:ok, create_or_restore_engine(game)}
   end
 
   @impl true
@@ -50,5 +50,27 @@ defmodule TwentyFortyEight.Game.Manager do
 
   defp via_tuple(name) do
     {:via, Registry, {@registry, name}}
+  end
+
+  defp create_or_restore_engine(%Game{state: :new, board: nil} = game) do
+    board = Board.init(game.num_rows, game.num_cols, game.starting_number, game.num_obstacles)
+    opts = [turn_start_number: game.turn_start_number, winning_number: game.winning_number]
+
+    Engine.init(board, opts)
+  end
+
+  defp create_or_restore_engine(game) do
+    board = %Board{cells: game.board, num_rows: game.num_rows, num_cols: game.num_cols}
+
+    state = %{
+      board: board,
+      score: game.score,
+      turns: game.turns,
+      state: game.state,
+      turn_start_number: game.turn_start_number,
+      winning_number: game.winning_number
+    }
+
+    Engine.restore(state)
   end
 end
