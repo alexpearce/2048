@@ -1,4 +1,4 @@
-defmodule TwentyFourtyEight.Repo.Migrations.CreateGameTable do
+defmodule TwentyFortyEight.Repo.Migrations.CreateGameTable do
   use Ecto.Migration
 
   def change do

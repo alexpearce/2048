@@ -7,19 +7,19 @@
 # General application configuration
 import Config
 
-config :twenty_fourty_eight,
-  ecto_repos: [TwentyFourtyEight.Repo],
+config :twenty_forty_eight,
+  ecto_repos: [TwentyFortyEight.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Configures the endpoint
-config :twenty_fourty_eight, TwentyFourtyEightWeb.Endpoint,
+config :twenty_forty_eight, TwentyFortyEightWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Phoenix.Endpoint.Cowboy2Adapter,
   render_errors: [
-    formats: [html: TwentyFourtyEightWeb.ErrorHTML, json: TwentyFourtyEightWeb.ErrorJSON],
+    formats: [html: TwentyFortyEightWeb.ErrorHTML, json: TwentyFortyEightWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: TwentyFourtyEight.PubSub,
+  pubsub_server: TwentyFortyEight.PubSub,
   live_view: [signing_salt: "SipBW+C+"]
 
 # Configures the mailer
@@ -29,7 +29,7 @@ config :twenty_fourty_eight, TwentyFourtyEightWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :twenty_fourty_eight, TwentyFourtyEight.Mailer, adapter: Swoosh.Adapters.Local
+config :twenty_forty_eight, TwentyFortyEight.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,

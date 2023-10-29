@@ -1,9 +1,9 @@
-defmodule TwentyFourtyEight.MixProject do
+defmodule TwentyFortyEight.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :twenty_fourty_eight,
+      app: :twenty_forty_eight,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule TwentyFourtyEight.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {TwentyFourtyEight.Application, []},
+      mod: {TwentyFortyEight.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

@@ -1,4 +1,4 @@
-# TwentyFourtyEight
+# TwentyFortyEight
 
 To start your Phoenix server:
 

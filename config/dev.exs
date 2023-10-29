@@ -1,11 +1,11 @@
 import Config
 
 # Configure your database
-config :twenty_fourty_eight, TwentyFourtyEight.Repo,
+config :twenty_forty_eight, TwentyFortyEight.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "twenty_fourty_eight_dev",
+  database: "twenty_forty_eight_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -16,7 +16,7 @@ config :twenty_fourty_eight, TwentyFourtyEight.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :twenty_fourty_eight, TwentyFourtyEightWeb.Endpoint,
+config :twenty_forty_eight, TwentyFortyEightWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 4000],
@@ -53,17 +53,17 @@ config :twenty_fourty_eight, TwentyFourtyEightWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :twenty_fourty_eight, TwentyFourtyEightWeb.Endpoint,
+config :twenty_forty_eight, TwentyFortyEightWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/twenty_fourty_eight_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/twenty_forty_eight_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :twenty_fourty_eight, dev_routes: true
+config :twenty_forty_eight, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
