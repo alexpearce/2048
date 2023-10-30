@@ -1,18 +1,42 @@
 # TwentyFortyEight
 
-To start your Phoenix server:
+A multiplayer version of [2048](https://play2048.co/) built using Elixir/Phoenix.
 
-  * Run `mix setup` to install and setup dependencies
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Development
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+A recent Elixir version and a running PostgreSQL instance are required for development.
+The simplest way to acquire this is via the provided Nix flake; if you have direnv installed run `direnv allow` and a development environment will be automatically available in your shell.
+PostgreSQL can be started in the foreground with `devenv up`.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+Run `mix setup` to install Elixir dependencies and initialised the database.
 
-## Learn more
+Finally, run `mix phx.server` to start the development server.
 
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+## Gameplay
+
+The homepage lets you choose what kind of 2048 game you'd like to play, including:
+
+- Board dimensions (number of rows and columns);
+- How many obstacles to place on the board;
+- Which numbers are placed on the board initially and during turns;
+- What number is required to win.
+
+After starting the game, you can copy the URL and share it with others (or open a separate browser ta to simulate another player).
+All players sharing a game can make moves in any order, and other players will see those moves in real time.
+
+## Code structure
+
+The core gameplay runtime is independent of Phoenix and can in principle be driven by other interfaces, e.g. `iex` or a CLI client.
+The runtime is under the `TwentyFortyEight.Game` namespace.
+
+- `TwentyFortyEight.Game.Board`: Stores the board size and individual cell values, and encapsulates the business logic of how moves affect the board and whether a board is unsolvable.
+- `TwentyFortyEight.Game.Engine`: Operates on the full game state, including the board, number of turns, and score.
+- `TwentyFortyEight.Game.Manager`: A `GenServer` which acts as message bus between clients and the engine. It will shut down after several minutes of inactivity, saving the current game state to the database to allow subsequent restarts from where the game was left.
+- `TwentyFortyEight.Game.Game`: Persistence schema for storing game state to the database.
+
+The Phoenix components are under the `TwentyFortyEightWeb` namespace.
+
+- `TwentyFortyEightWeb.GameController`: Presents the new-game form and handles its submission.
+- `TwentyFortyEightWeb.GameLive`: A LiveView which creates or connects to `Manager` instances. It requests game state from the manager to display it, forwards key presses to the manager, and uses a PubSub topic for synchronising updates between players.
+
+Finally, there's a bunch of Phoenix boilerplate I haven't tidied up!
