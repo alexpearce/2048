@@ -26,6 +26,9 @@ The homepage lets you choose what kind of 2048 game you'd like to play, includin
 After starting the game, you can copy the URL and share it with others (or open a separate browser tab to simulate another player).
 All players sharing a game can make moves in any order, and other players will see those moves in real time.
 
+Up, down, left, and right movements are supported via the arrow keys, the hjkl keys, and the wasd keys.
+Playing on mobile isn't supported.
+
 ## Code structure
 
 The core gameplay runtime is independent of Phoenix and can in principle be driven by other interfaces, e.g. `iex` or a CLI client.
