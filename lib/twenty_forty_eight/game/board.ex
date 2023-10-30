@@ -98,15 +98,16 @@ defmodule TwentyFortyEight.Game.Board do
     # For each row, we run a two-pointer algorithm where:
     #
     # * Pointer #1 iterates through the row.
-    # * Pointer #2 points to the latest non-empty, non-modified cell behind pointer #1.
+    # * Pointer #2 points to the latest non-empty, non-modified cell behind
+    #   pointer #1.
     #
     # As #1 iterates, if its current cell is not empty and:
     #
-    # * Has the same value as the cell of #2: the cell of #1 will be merged into that of #2 (the #2 cell
-    #   value will be doubled and the #1 cell will be emptied) and the #2 pointer will
-    #   be nullified. Or;
-    # * Does not have the same value as the cell of #2: the #2 pointer
-    #   is updated to point to #1 before #1 continues its iteration.
+    # * Has the same value as the cell of #2: the cell of #1 will be merged into
+    #   that of #2 (the #2 cell value will be doubled and the #1 cell will be
+    #   emptied) and the #2 pointer will be nullified. Or;
+    # * Does not have the same value as the cell of #2: the #2 pointer is
+    #   updated to point to #1 before #1 continues its iteration.
     updates =
       rows_for_move(board, move)
       |> Enum.map(fn row ->

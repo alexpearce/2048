@@ -33,9 +33,8 @@ defmodule TwentyFortyEightWeb.GameLive do
          |> put_flash(:error, "Could not find game with ID #{name}.")
          |> redirect(to: ~p"/")}
 
-      game ->
-        # TODO change game to die after no interaction (or put similar logic in the manager?)
-        {:ok, _pid} = GameManager.get_game(name, game)
+      _game_state ->
+        {:ok, _pid} = GameManager.start(name)
 
         if connected?(socket) do
           Phoenix.PubSub.subscribe(TwentyFortyEight.PubSub, name)

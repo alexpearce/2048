@@ -24,7 +24,7 @@ defmodule TwentyFortyEight.Game.Game do
     timestamps()
   end
 
-  def changeset(attrs) do
+  def create_changeset(attrs) do
     %__MODULE__{}
     |> cast(attrs, [
       :num_rows,
@@ -42,6 +42,12 @@ defmodule TwentyFortyEight.Game.Game do
     |> validate_inclusion(:winning_number, [1024, 2048])
   end
 
+  def update_changeset(%__MODULE__{} = game, attrs) do
+    game
+    |> cast(attrs, [:board, :score, :turns, :state])
+    |> validate_required([:board, :score, :turns, :state])
+  end
+
   def insert(changeset) do
     changeset
     |> cast(%{slug: generate_slug()}, [:slug])
@@ -51,6 +57,12 @@ defmodule TwentyFortyEight.Game.Game do
 
   def get_by_slug(slug) do
     Repo.get_by(__MODULE__, slug: slug)
+  end
+
+  def update(%__MODULE__{} = game, attrs) do
+    game
+    |> update_changeset(attrs)
+    |> Repo.update()
   end
 
   defp generate_slug() do

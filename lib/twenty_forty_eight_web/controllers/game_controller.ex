@@ -4,12 +4,12 @@ defmodule TwentyFortyEightWeb.GameController do
   alias TwentyFortyEight.Game.Game
 
   def new(conn, _params) do
-    changeset = Game.changeset(%{})
+    changeset = Game.create_changeset(%{})
     render(conn, :new, changeset: changeset)
   end
 
   def create(conn, %{"game" => attrs} = _params) do
-    changeset = Game.changeset(attrs)
+    changeset = Game.create_changeset(attrs)
 
     case Game.insert(changeset) do
       {:ok, game} -> redirect(conn, to: ~p"/#{game.slug}")
