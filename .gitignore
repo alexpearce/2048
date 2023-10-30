@@ -38,3 +38,6 @@ npm-debug.log
 # Nix.
 /.devenv/
 /.direnv/
+
+# Fly.
+/rel/

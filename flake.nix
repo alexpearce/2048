@@ -44,6 +44,8 @@
                     beamPackages.elixir-ls
                     # JavaScript.
                     pkgs.nodejs_20
+                    # Deployment.
+                    flyctl
                   ]
                   ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [
                     # ExUnit notifications on macOS.
