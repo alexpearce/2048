@@ -5,10 +5,10 @@ A multiplayer version of [2048](https://play2048.co/) built using Elixir/Phoenix
 ## Development
 
 A recent Elixir version and a running PostgreSQL instance are required for development.
-The simplest way to acquire this is via the provided Nix flake; if you have direnv installed run `direnv allow` and a development environment will be automatically available in your shell.
+The simplest way to acquire these is via the provided [Nix](https://nixos.org/) flake; if you have [direnv](https://direnv.net/) installed run `direnv allow` and a development environment will be automatically available in your shell.
 PostgreSQL can be started in the foreground with `devenv up`.
 
-Run `mix setup` to install Elixir dependencies and initialised the database.
+Run `mix setup` to install Elixir dependencies and initialise the database.
 
 Finally, run `mix phx.server` to start the development server.
 
@@ -21,7 +21,7 @@ The homepage lets you choose what kind of 2048 game you'd like to play, includin
 - Which numbers are placed on the board initially and during turns;
 - What number is required to win.
 
-After starting the game, you can copy the URL and share it with others (or open a separate browser ta to simulate another player).
+After starting the game, you can copy the URL and share it with others (or open a separate browser tab to simulate another player).
 All players sharing a game can make moves in any order, and other players will see those moves in real time.
 
 ## Code structure
@@ -30,11 +30,11 @@ The core gameplay runtime is independent of Phoenix and can in principle be driv
 The runtime is under the `TwentyFortyEight.Game` namespace.
 
 - `TwentyFortyEight.Game.Board`: Stores the board size and individual cell values, and encapsulates the business logic of how moves affect the board and whether a board is unsolvable.
-- `TwentyFortyEight.Game.Engine`: Operates on the full game state, including the board, number of turns, and score.
-- `TwentyFortyEight.Game.Manager`: A `GenServer` which acts as message bus between clients and the engine. It will shut down after several minutes of inactivity, saving the current game state to the database to allow subsequent restarts from where the game was left.
+- `TwentyFortyEight.Game.Engine`: Operates on the full game state, including the board, number of turns, score, and whether the game has been won or lost.
+- `TwentyFortyEight.Game.Manager`: A `GenServer` which acts as a message bus between clients and the engine. It will shut down after several minutes of inactivity, saving the current game state to the database to allow subsequent restarts from where the game was left.
 - `TwentyFortyEight.Game.Game`: Persistence schema for storing game state to the database.
 
-The Phoenix components are under the `TwentyFortyEightWeb` namespace.
+Phoenix components are under the `TwentyFortyEightWeb` namespace.
 
 - `TwentyFortyEightWeb.GameController`: Presents the new-game form and handles its submission.
 - `TwentyFortyEightWeb.GameLive`: A LiveView which creates or connects to `Manager` instances. It requests game state from the manager to display it, forwards key presses to the manager, and uses a PubSub topic for synchronising updates between players.

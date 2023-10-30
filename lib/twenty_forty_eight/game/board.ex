@@ -129,23 +129,30 @@ defmodule TwentyFortyEight.Game.Board do
     {new_row, _} =
       Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
                                           {new_row, last_non_empty_coord} ->
-        case current_value do
-          nil ->
-            {new_row, last_non_empty_coord}
-
-          :obstacle ->
-            {new_row, nil}
-
-          _ ->
-            if current_value == new_row[last_non_empty_coord] do
-              {%{new_row | last_non_empty_coord => 2 * current_value, coord => nil}, nil}
-            else
-              {new_row, coord}
-            end
-        end
+        merge_row_value(new_row, last_non_empty_coord, current_value, coord)
       end)
 
     Map.to_list(new_row)
+  end
+
+  defp merge_row_value(row, last_non_empty_coord, nil = _value, _coord) do
+    # The current value is nil, so nothing to do.
+    {row, last_non_empty_coord}
+  end
+
+  defp merge_row_value(row, _last_non_empty_coord, :obstacle = _value, _coord) do
+    # The current value is an obstacle, so we must begin a new section.
+    {row, nil}
+  end
+
+  defp merge_row_value(row, last_non_empty_coord, value, coord) do
+    # If the current integer value is equal to the previous integer, we merge
+    # the two by doubling the previous integer and removing the current one.
+    if value == row[last_non_empty_coord] do
+      {%{row | last_non_empty_coord => 2 * value, coord => nil}, nil}
+    else
+      {row, coord}
+    end
   end
 
   defp move_values(board, move) do
