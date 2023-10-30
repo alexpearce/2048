@@ -2,6 +2,8 @@
 
 A multiplayer version of [2048](https://play2048.co/) built using Elixir/Phoenix.
 
+Available to play at https://apearwin-2048.fly.dev/.
+
 ## Development
 
 A recent Elixir version and a running PostgreSQL instance are required for development.
