@@ -1,4 +1,7 @@
 defmodule TwentyFortyEight.Game.Engine do
+  @moduledoc """
+  Mutate game state via input events.
+  """
   alias TwentyFortyEight.Game.Board
 
   @doc """

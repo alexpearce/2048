@@ -1,4 +1,7 @@
 defmodule TwentyFortyEight.Game.Manager do
+  @moduledoc """
+  Store game state and process business logic events.
+  """
   use GenServer, restart: :transient
 
   alias TwentyFortyEight.Game.{Board, Engine, Game}

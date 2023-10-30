@@ -1,4 +1,7 @@
 defmodule TwentyFortyEight.Game.Board do
+  @moduledoc """
+  Game board value store and business logic handler.
+  """
   @enforce_keys [:cells, :num_rows, :num_cols]
   defstruct [:cells, :num_rows, :num_cols]
 

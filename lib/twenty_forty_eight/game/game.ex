@@ -1,4 +1,7 @@
 defmodule TwentyFortyEight.Game.Game do
+  @moduledoc """
+  Persistance layer for storing game state to a database.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
