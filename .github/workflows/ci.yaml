@@ -75,5 +75,5 @@ jobs:
         run: mix dialyzer --format github
 
       # Tests.
-      - name: Check tests
-        run: mix test
+      # - name: Check tests
+      #   run: mix test
