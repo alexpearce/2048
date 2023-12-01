@@ -1,7 +1,8 @@
 defmodule TwentyFortyEight.Game.BoardTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias TwentyFortyEight.Game.Board
+  alias TwentyFortyEight.Test.Helpers, as: TestHelpers
 
   describe "init/4" do
     test "initialises a board" do
@@ -59,14 +60,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
   describe "equal?/2" do
     test "two boards with equal dimensions and cell contents are equal" do
       board_a =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - - -
         """)
 
       board_b =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - - -
@@ -81,14 +82,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "two boards with equal dimensions but different cell contents are not equal" do
       board_a =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - - -
         """)
 
       board_b =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - 2 *
         - - -
@@ -99,14 +100,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "two boards of different dimensions are not identical" do
       board_a =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - - -
         """)
 
       board_b =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 -
         * 2
         """)
@@ -118,14 +119,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
   describe "apply_move/2" do
     test "moves pieces up" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - 4 -
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - 2
         - * -
         - 4 -
@@ -136,14 +137,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves pieces down" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - 4 -
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         - - -
         - * -
         2 4 2
@@ -154,14 +155,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves pieces left" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - 4 -
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         4 - -
@@ -172,14 +173,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves pieces right" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 - -
         - * 2
         - 4 -
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         - - 2
         - * 2
         - - 4
@@ -190,14 +191,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves and merges pieces up" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         4 4 2
         4 * 2
         4 4 8
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         8 4 4
         4 * 8
         - 4 -
@@ -208,14 +209,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves and merges pieces down" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         4 4 2
         4 * 2
         4 4 8
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         - 4 -
         4 * 4
         8 4 8
@@ -226,14 +227,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves and merges pieces left" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         4 4 2
         4 * 2
         4 4 8
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         8 2 -
         4 * 2
         8 8 -
@@ -244,14 +245,14 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "moves and merges pieces right" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         4 4 2
         4 * 2
         4 4 8
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         - 8 2
         4 * 2
         - 8 8
@@ -262,7 +263,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "big move and merge" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2  2  8  8   1024 1024 512
         64 64 *  128 *    128  128
         16 -  -  -   16   -    -
@@ -270,7 +271,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
         """)
 
       moved =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         - -   -  4   16 2048 512
         - 128 *  128 *  -    256
         - -   -  -   -  -    32
@@ -284,7 +285,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
   describe "unsolvable?/1" do
     test "a full board with no possible merges is unsolvable" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         4 2
         """)
@@ -294,7 +295,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "a full board with possible merges is not unsolvable" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         2 8
         """)
@@ -302,7 +303,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
       refute Board.unsolvable?(board)
 
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         2 *
         """)
@@ -312,7 +313,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "a board with empty spaces not unsolvable" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         4 -
         """)
@@ -324,7 +325,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
   describe "has_value?/1" do
     test "returns true if the board contains the value" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         4 *
         """)
@@ -335,7 +336,7 @@ defmodule TwentyFortyEight.Game.BoardTest do
 
     test "returns false if the board does not contain the value" do
       board =
-        ascii_to_board("""
+        TestHelpers.ascii_to_board("""
         2 4
         4 *
         """)
@@ -344,35 +345,6 @@ defmodule TwentyFortyEight.Game.BoardTest do
       refute Board.has_value?(board, 8)
     end
   end
-
-  defp ascii_to_board(ascii) do
-    rows =
-      ascii
-      |> String.trim()
-      |> String.split("\n")
-      |> Enum.map(&String.split/1)
-
-    num_rows = Enum.count(rows)
-    assert num_rows > 0
-
-    [num_cols | _] = row_sizes = Enum.map(rows, &Enum.count/1)
-    assert Enum.all?(row_sizes, fn row_size -> row_size == num_cols end)
-
-    cells =
-      for {row, row_idx} <- Enum.with_index(rows),
-          {character, col_idx} <- Enum.with_index(row),
-          into: %{} do
-        {{1 + row_idx, 1 + col_idx}, ascii_to_cell_value(character)}
-      end
-
-    %Board{num_rows: num_rows, num_cols: num_cols, cells: cells}
-  end
-
-  defp ascii_to_cell_value("-"), do: nil
-
-  defp ascii_to_cell_value("*"), do: :obstacle
-
-  defp ascii_to_cell_value(ascii), do: String.to_integer(ascii)
 
   defp cell_contents(board) do
     {numeric_cells(board), count_obstacles(board), count_empty(board)}
