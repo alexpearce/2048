@@ -15,6 +15,18 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       ImageOS: ubuntu22
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
@@ -73,7 +85,5 @@ jobs:
         run: mix dialyzer --plt
       - name: Check typespecs
         run: mix dialyzer --format github
-
-      # Tests.
-      # - name: Check tests
-      #   run: mix test
+      - name: Run tests
+        run: mix test
