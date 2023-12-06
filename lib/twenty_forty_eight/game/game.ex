@@ -5,6 +5,7 @@ defmodule TwentyFortyEight.Game.Game do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Ecto.Changeset
   alias TwentyFortyEight.Repo
 
   @slug_length 8
@@ -39,22 +40,40 @@ defmodule TwentyFortyEight.Game.Game do
     ])
     |> validate_inclusion(:num_rows, 1..6)
     |> validate_inclusion(:num_cols, 1..6)
-    |> validate_inclusion(:num_obstacles, 1..6)
+    |> validate_inclusion(:num_obstacles, 0..6)
     |> validate_inclusion(:starting_number, [1, 2, 4])
     |> validate_inclusion(:turn_start_number, [1, 2, 4])
     |> validate_inclusion(:winning_number, [1024, 2048])
+    |> put_change(:slug, generate_slug())
+    |> unique_constraint(:slug)
   end
 
   def update_changeset(%__MODULE__{} = game, attrs) do
     game
     |> cast(attrs, [:board, :score, :turns, :state])
     |> validate_required([:board, :score, :turns, :state])
+    |> validate_state_transition()
+  end
+
+  defp validate_state_transition(
+         %Changeset{data: %__MODULE__{state: :new}, changes: %{state: :running}} = changeset
+       ) do
+    # Game state can transition from :new to :running.
+    changeset
+  end
+
+  defp validate_state_transition(%Changeset{data: %__MODULE__{state: :running}} = changeset) do
+    # Game state can transition from :running to :running, :won, or :lost.
+    validate_inclusion(changeset, :state, [:running, :won, :lost])
+  end
+
+  defp validate_state_transition(changeset) do
+    # Game state cannot transition from :won or :lost.
+    add_error(changeset, :state, "Invalid state transition")
   end
 
   def insert(changeset) do
     changeset
-    |> cast(%{slug: generate_slug()}, [:slug])
-    |> unique_constraint(:slug)
     |> Repo.insert()
   end
 
