@@ -13,20 +13,20 @@ defmodule TwentyFortyEight.Game.ManagerServer do
   @registry TwentyFortyEight.Game.Registry
   @supervisor TwentyFortyEight.Game.Supervisor
   # Shutdown the server after 10 minutes to avoid dangling processes.
-  @timeout 10 * 60 * 1_000
+  @default_timeout 10 * 60 * 1_000
 
   @doc """
   Ensure a server is running for the game named `name`.
   """
-  def start(%Manager{name: name} = manager) do
+  def start(%Manager{name: name} = manager, opts \\ []) do
     case Registry.lookup(@registry, name) do
       [{pid, _value}] -> {:ok, pid}
-      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, manager})
+      [] -> DynamicSupervisor.start_child(@supervisor, {__MODULE__, {manager, opts}})
     end
   end
 
-  def start_link(%Manager{name: name} = manager) do
-    GenServer.start_link(__MODULE__, manager, name: via_tuple(name))
+  def start_link({%Manager{name: name} = manager, opts}) do
+    GenServer.start_link(__MODULE__, {manager, opts}, name: via_tuple(name))
   end
 
   @doc """
@@ -44,36 +44,37 @@ defmodule TwentyFortyEight.Game.ManagerServer do
   end
 
   @impl true
-  def init(manager) do
+  def init({manager, opts}) do
     Process.flag(:trap_exit, true)
-    {:ok, manager, @timeout}
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
+    {:ok, %{manager: manager, timeout: timeout}, timeout}
   end
 
   @impl true
-  def handle_call({:tick, move}, _from, manager) do
-    manager = Manager.tick(manager, move)
-    {:reply, :ok, manager, @timeout}
+  def handle_call({:tick, move}, _from, state) do
+    manager = Manager.tick(state.manager, move)
+    state = %{state | manager: manager}
+    {:reply, :ok, state, state.timeout}
   end
 
   @impl true
-  def handle_call(:manager, _from, manager) do
-    {:reply, manager, manager, @timeout}
+  def handle_call(:manager, _from, state) do
+    {:reply, state.manager, state, state.timeout}
   end
 
   @impl true
-  def handle_info(:timeout, manager) do
-    handle_exit(manager)
-    {:stop, :shutdown, manager}
+  def handle_info(:timeout, state) do
+    {:stop, :shutdown, state}
   end
 
   @impl true
-  def handle_info({:EXIT, _from, reason}, manager) do
-    handle_exit(manager)
-    {:stop, reason, manager, @timeout}
+  def handle_info({:EXIT, _from, reason}, state) do
+    {:stop, reason, state}
   end
 
-  defp handle_exit(manager) do
-    Manager.save(manager)
+  @impl true
+  def terminate(_reason, state) do
+    Manager.save(state.manager)
   end
 
   defp via_tuple(name) do
