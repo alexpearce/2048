@@ -36,8 +36,9 @@ The runtime is under the `TwentyFortyEight.Game` namespace.
 
 - `TwentyFortyEight.Game.Board`: Stores the board size and individual cell values, and encapsulates the business logic of how moves affect the board and whether a board is unsolvable.
 - `TwentyFortyEight.Game.Engine`: Operates on the full game state, including the board, number of turns, score, and whether the game has been won or lost.
-- `TwentyFortyEight.Game.Manager`: A `GenServer` which acts as a message bus between clients and the engine. It will shut down after several minutes of inactivity, saving the current game state to the database to allow subsequent restarts from where the game was left.
+- `TwentyFortyEight.Game.Manager`: A layer between an `Engine` and the database, providing persistence and retrieval of games.
 - `TwentyFortyEight.Game.Game`: Persistence schema for storing game state to the database.
+- `TwentyFortyEight.Game.ManagerServer`: A `GenServer` which passes messages between a `Manager` it holds and its own clients. It will shut down after several minutes of inactivity, triggering database persistence to allow subsequent restarts to pick up from where the game was left.
 
 Phoenix components are under the `TwentyFortyEightWeb` namespace.
 
