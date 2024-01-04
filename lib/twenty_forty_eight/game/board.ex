@@ -20,8 +20,7 @@ defmodule TwentyFortyEight.Game.Board do
   Return a board with a single starting number and zero or more obstacles.
   """
   def init(num_rows, num_cols, starting_number, num_obstacles) do
-    empty_cells =
-      for row <- 1..num_rows, col <- 1..num_cols, into: %{}, do: {{row, col}, nil}
+    empty_cells = for row <- 1..num_rows, col <- 1..num_cols, into: %{}, do: {{row, col}, nil}
 
     %__MODULE__{cells: empty_cells, num_rows: num_rows, num_cols: num_cols}
     |> add_value(starting_number)
@@ -31,7 +30,9 @@ defmodule TwentyFortyEight.Game.Board do
   @doc """
   Return `board` with `value` inserted into a randomly chosen empty cell.
   """
-  def add_value(%__MODULE__{cells: cells} = board, value) do
+  def add_value(%__MODULE__{} = board, value) do
+    %{cells: cells} = board
+
     random_coord =
       board
       |> cell_coordinates()
@@ -45,16 +46,21 @@ defmodule TwentyFortyEight.Game.Board do
   Return `board` with its values shifted and merged according to `move`. 
   """
   def apply_move(%__MODULE__{} = board, move) when move in @valid_moves do
-    board
-    |> merge_values(move)
-    |> move_values(move)
+    cells =
+      matrix_for_move(board, move)
+      |> move_rows()
+      |> merge_rows()
+      |> move_rows()
+      |> cells_from_matrix(move)
+
+    %__MODULE__{board | cells: cells}
   end
 
   @doc """
   Return true if two boards have identical cell coordinates and values.
   """
-  def equal?(%__MODULE__{cells: a}, %__MODULE__{cells: b}) do
-    Map.equal?(a, b)
+  def equal?(%__MODULE__{} = a, %__MODULE__{} = b) do
+    Map.equal?(a.cells, b.cells)
   end
 
   @doc """
@@ -83,109 +89,67 @@ defmodule TwentyFortyEight.Game.Board do
     |> add_obstacles(num_remaining - 1)
   end
 
-  defp cells(%__MODULE__{cells: cells}), do: cells
-
   defp cell_coordinates(board) do
-    board
-    |> cells()
-    |> Map.keys()
+    Map.keys(board.cells)
   end
 
   defp cell_values(board) do
-    board
-    |> cells()
-    |> Map.values()
+    Map.values(board.cells)
   end
 
-  defp merge_values(board, move) do
-    # For each row, we run a two-pointer algorithm where:
-    #
-    # * Pointer #1 iterates through the row.
-    # * Pointer #2 points to the latest non-empty, non-modified cell behind
-    #   pointer #1.
-    #
-    # As #1 iterates, if its current cell is not empty and:
-    #
-    # * Has the same value as the cell of #2: the cell of #1 will be merged into
-    #   that of #2 (the #2 cell value will be doubled and the #1 cell will be
-    #   emptied) and the #2 pointer will be nullified. Or;
-    # * Does not have the same value as the cell of #2: the #2 pointer is
-    #   updated to point to #1 before #1 continues its iteration.
-    updates =
-      rows_for_move(board, move)
-      |> Enum.map(fn row ->
-        Enum.map(row, fn coord -> {coord, board.cells[coord]} end)
-      end)
-      |> Enum.flat_map(&merge_row_values(&1))
-      |> Enum.into(%{})
+  defp move_rows(rows), do: Enum.map(rows, &move_row(&1, [], []))
 
-    update_board(board, updates)
-  end
+  defp move_row([], acc, nils), do: Enum.reverse(nils ++ acc)
+  defp move_row([nil | rest], acc, nils), do: move_row(rest, acc, [nil | nils])
+  defp move_row([@obstacle | rest], acc, nils), do: move_row(rest, [@obstacle | nils ++ acc], [])
+  defp move_row([cell | rest], acc, nils), do: move_row(rest, [cell | acc], nils)
 
-  defp merge_row_values(row) do
-    # row is a list of {{row, col}, value} elements.
-    new_row = Enum.into(row, %{})
+  defp merge_rows(rows), do: Enum.map(rows, &merge_row(&1, []))
 
-    {new_row, _} =
-      Enum.reduce(row, {new_row, nil}, fn {coord, current_value},
-                                          {new_row, last_non_empty_coord} ->
-        merge_row_value(new_row, last_non_empty_coord, current_value, coord)
-      end)
+  defp merge_row([], acc), do: Enum.reverse(acc)
 
-    Map.to_list(new_row)
-  end
+  # When we encounter two consecutive cells with the same integer value,
+  # merge them into one and leave the other blank.
+  defp merge_row([number, number | rest], acc) when is_integer(number),
+    do: merge_row(rest, [number + number, nil | acc])
 
-  defp merge_row_value(row, last_non_empty_coord, nil = _value, _coord) do
-    # The current value is nil, so nothing to do.
-    {row, last_non_empty_coord}
-  end
+  defp merge_row([cell | rest], acc), do: merge_row(rest, [cell | acc])
 
-  defp merge_row_value(row, _last_non_empty_coord, :obstacle = _value, _coord) do
-    # The current value is an obstacle, so we must begin a new section.
-    {row, nil}
-  end
+  defp matrix_for_move(board, move) do
+    rows = rows_for_move(board, move)
 
-  defp merge_row_value(row, last_non_empty_coord, value, coord) do
-    # If the current integer value is equal to the previous integer, we merge
-    # the two by doubling the previous integer and removing the current one.
-    if value == row[last_non_empty_coord] do
-      {%{row | last_non_empty_coord => 2 * value, coord => nil}, nil}
-    else
-      {row, coord}
+    for row <- rows do
+      for coord <- row do
+        Map.fetch!(board.cells, coord)
+      end
     end
   end
 
-  defp move_values(board, move) do
-    # Conceptually, for each 'row' of values being moved:
-    # 1. Create a new row with all non-empty cells.
-    # 2. Pad the row up to the board size with empty cells.
-    updates =
-      rows_for_move(board, move)
-      |> Enum.flat_map(fn row ->
-        # Non-empty cells in the same order they appear in the row.
-        values =
-          row
-          |> Enum.map(&Map.fetch!(board.cells, &1))
-          |> Enum.chunk_by(&(&1 == @obstacle))
-          |> Enum.flat_map(fn chunked_row ->
-            values = chunked_row |> Enum.filter(& &1)
-
-            # Empty cells needed to pad out the new row.
-            padding = List.duplicate(nil, Enum.count(chunked_row) - Enum.count(values))
-
-            values ++ padding
-          end)
-
-        # Zip the original coordinates with the new values.
-        Enum.zip(row, values)
-      end)
-      |> Enum.into(%{})
-
-    update_board(board, updates)
+  defp cells_from_matrix(matrix, :left) do
+    for {row, row_idx} <- Enum.with_index(matrix, 1),
+        {el, col_idx} <- Enum.with_index(row, 1),
+        into: %{} do
+      {{row_idx, col_idx}, el}
+    end
   end
 
-  defp update_board(board, updates) do
-    %__MODULE__{board | cells: Map.merge(board.cells, updates)}
+  defp cells_from_matrix(matrix, :right) do
+    matrix
+    |> Enum.map(&Enum.reverse/1)
+    |> cells_from_matrix(:left)
+  end
+
+  defp cells_from_matrix(matrix, :up) do
+    matrix
+    |> Enum.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> cells_from_matrix(:left)
+  end
+
+  defp cells_from_matrix(matrix, :down) do
+    matrix
+    |> Enum.map(&Enum.reverse/1)
+    |> cells_from_matrix(:up)
   end
 
   defp rows_for_move(board, :left) do
